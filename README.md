@@ -55,5 +55,8 @@ JSON
     }
   }
 }
+
+
+
 ⚠️ Yasal Uyarı
 Bu proje sadece eğitim ve kişisel kullanım amaçlıdır. Veriler üçüncü taraf bir web sitesinden çekilmektedir. Yatırım tavsiyesi içermez ve verilerin kesin doğruluğu garanti edilmez.
