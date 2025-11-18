@@ -3,7 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 import json
 from datetime import datetime
-
+import pytz  
 app = Flask(__name__)
 
 def clean_currency(text):
@@ -13,20 +13,15 @@ def clean_currency(text):
     if not text:
         return None
     
-    # Temizlik yap (TL, boşluk vs kaldır)
     clean_text = text.replace('TL', '').strip()
     
-    # Eğer virgül sonda ise (kuruş ayracı) ve nokta binlik ise (TR Formatı: 1.234,56)
     if ',' in clean_text and '.' in clean_text:
         if clean_text.find('.') < clean_text.find(','):
             clean_text = clean_text.replace('.', '').replace(',', '.')
         else:
-            # US Formatı (1,234.56) -> Virgülü kaldır
             clean_text = clean_text.replace(',', '')
     elif ',' in clean_text:
-        # Sadece virgül varsa ve 3 haneden sonra geliyorsa binliktir (5,721) -> kaldır
-        # Ama 12,50 gibiyse kuruştur. Bu ayrımı basitçe şöyle yapalım:
-        if len(clean_text.split(',')[1]) == 3: # Binlik olma ihtimali yüksek
+        if len(clean_text.split(',')[1]) == 3: 
              clean_text = clean_text.replace(',', '')
         else:
              clean_text = clean_text.replace(',', '.')
@@ -35,6 +30,13 @@ def clean_currency(text):
         return float(clean_text)
     except ValueError:
         return None
+
+def get_turkey_time():
+    """
+    Sunucu saati ne olursa olsun Türkiye saatini döndürür.
+    """
+    tr_timezone = pytz.timezone('Europe/Istanbul')
+    return datetime.now(tr_timezone).strftime("%Y-%m-%d %H:%M:%S")
 
 def maydagold_scraper():
     url = "https://maydagold.com"
@@ -56,7 +58,7 @@ def maydagold_scraper():
 
     sonuc = {
         "kaynak": "maydagold.com",
-        "güncelleme_zamanı": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "güncelleme_zamanı": get_turkey_time(), 
         "fiyatlar": {}
     }
 
@@ -72,7 +74,6 @@ def maydagold_scraper():
         alis_str = hücreler[1].get_text(strip=True)
         satis_str = hücreler[2].get_text(strip=True)
 
-        # Yeni temizleme fonksiyonunu kullanıyoruz
         alis = clean_currency(alis_str)
         satis = clean_currency(satis_str)
 
@@ -88,14 +89,13 @@ def maydagold_scraper():
 @app.route('/')
 def home():
     return jsonify({
-        "mesaj": "MaydaGold API Calisiyor kankam", 
-        "kullanim": "/api/gold adresine git"
+        "mesaj": "MaydaGold API Calisiyor", 
+        "kullanim": "/api/gold adresine istek atın",
     })
 
 @app.route('/api/gold', methods=['GET'])
 def get_gold_prices():
     data = maydagold_scraper()
-    # JSON çıktısını UTF-8 karakter sorunu olmadan verelim
     return app.response_class(
         response=json.dumps(data, ensure_ascii=False),
         status=200,
@@ -103,5 +103,4 @@ def get_gold_prices():
     )
 
 if __name__ == "__main__":
-    # Yerelde çalıştırırken debug açık olsun
     app.run(debug=True)
